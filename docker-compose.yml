@@ -1,0 +1,28 @@
+services:
+  # PLATAFORMA 1 (Main Container)
+  main-jade:
+    image: si-sma-jade:latest
+    build: .
+    container_name: main-jade
+    command:
+      [
+        "java",
+        "-cp",
+        "app.jar",
+        "jade.Boot",
+        "-gui",
+        "-agents",
+        "Alvaro:edu.unmsm.fisi.AgenteAlarmado(fuego)",
+      ]
+    ports:
+      - "1099:1099"
+
+  # PLATAFORMA 2 (Remote Container)
+  remote-jade:
+    image: si-sma-jade:latest
+    build: .
+    container_name: remote-jade
+    depends_on:
+      - main-jade
+    # Se conecta al 'main-jade' por el nombre del servicio en la red de docker
+    command: java -cp app.jar jade.Boot -container -host main-jade -agents Miguel:edu.unmsm.fisi.AgenteBombero
