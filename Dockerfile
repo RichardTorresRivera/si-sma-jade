@@ -1,17 +1,19 @@
-# Usamos una imagen de Java ligera
-FROM openjdk:27-ea-17-slim-trixie
+FROM eclipse-temurin:8-jdk
 
-# Instalamos X11 para la GUI
-# RUN apt-get update && apt-get install -y libx11-6 xauth
+RUN apt-get update && apt-get install -y \
+    libx11-6 \
+    libxext6 \
+    libxrender1 \
+    libxtst6 \
+    libxi6 \
+    xauth \
+    x11-apps \
+    && rm -rf /var/lib/apt/lists/*
 
-# Directorio de trabajo
 WORKDIR /usr/src/app
 
-# Copiamos el jar que generaste con Maven
 COPY target/si-sma-jade-1.0-SNAPSHOT.jar app.jar
 
-# Variable para permitir la conexión gráfica
-# ENV DISPLAY=host.docker.internal:0
+ENV DISPLAY=host.docker.internal:0.0
 
-# Comando por defecto
-CMD ["java", "-cp", "app.jar", "jade.Boot"]
+ENV JAVA_TOOL_OPTIONS="-Djava.awt.headless=false"

@@ -1,9 +1,8 @@
 services:
-  # PLATAFORMA 1 (Main Container)
-  main-jade:
+  plataforma-a:
     image: si-sma-jade:latest
     build: .
-    container_name: main-jade
+    container_name: plataforma-a
     command:
       [
         "java",
@@ -11,18 +10,43 @@ services:
         "app.jar",
         "jade.Boot",
         "-gui",
+        "-name",
+        "PlataformaA",
         "-agents",
-        "Alvaro:edu.unmsm.fisi.AgenteAlarmado(fuego)",
+        "persona1:edu.unmsm.fisi.AgenteAlarmado(fuego);bridge:edu.unmsm.fisi.AgentePuente(bomb@PlataformaB)",
+        "-mtp",
+        "jade.mtp.http.MessageTransportProtocol(http://plataforma-a:7778/acc)",
       ]
     ports:
       - "1099:1099"
+      - "7778:7778"
+    networks:
+      - si-sma-jade-network
 
-  # PLATAFORMA 2 (Remote Container)
-  remote-jade:
+  plataforma-b:
     image: si-sma-jade:latest
-    build: .
-    container_name: remote-jade
+    container_name: plataforma-b
     depends_on:
-      - main-jade
-    # Se conecta al 'main-jade' por el nombre del servicio en la red de docker
-    command: java -cp app.jar jade.Boot -container -host main-jade -agents Miguel:edu.unmsm.fisi.AgenteBombero
+      - plataforma-a
+    command:
+      [
+        "java",
+        "-cp",
+        "app.jar",
+        "jade.Boot",
+        "-gui",
+        "-name",
+        "PlataformaB",
+        "-agents",
+        "bomb:edu.unmsm.fisi.AgenteBombero",
+        "-mtp",
+        "jade.mtp.http.MessageTransportProtocol(http://plataforma-b:7778/acc)",
+      ]
+    ports:
+      - "1100:1099"
+      - "7779:7778"
+    networks:
+      - si-sma-jade-network
+
+networks:
+  si-sma-jade-network:

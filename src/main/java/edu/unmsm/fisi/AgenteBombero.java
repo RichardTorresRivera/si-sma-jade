@@ -37,9 +37,18 @@ public class AgenteBombero extends Agent {
             public void action() {
                 ACLMessage msg = receive();
                 if (msg != null) {
+                    System.out.println(
+                        "[Bombero] Recibido de: " + msg.getSender().getName() +
+                        " | Contenido: " + msg.getContent() +
+                        " | ConvID: " + msg.getConversationId()
+                    );
+
                     if (msg.getContent().equalsIgnoreCase(mensaje)) {
                         ACLMessage reply = msg.createReply();
                         reply.setContent(respuesta);
+                         System.out.println(
+                            "[Bombero] Respondiendo a: " + reply.createReply()
+                        );
                         myAgent.send(reply);
                     } else {
                         block(); // suspende el comportamiento si no hay mensajes relevantes

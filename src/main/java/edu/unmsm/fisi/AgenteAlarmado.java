@@ -45,7 +45,11 @@ public class AgenteAlarmado extends Agent {
                 public void action() {
                     ACLMessage msg = receive();
                     if (msg != null)
-                        System.out.println(msg.getSender() + " → " + msg.getContent());
+                        System.out.println(
+                            "[Alarmado] Recibido de: " + msg.getSender().getName() +
+                            " | Contenido: " + msg.getContent() +
+                            " | ConvID: " + msg.getConversationId()
+                        );
                     else
                         block();
                 }
@@ -62,11 +66,15 @@ public class AgenteAlarmado extends Agent {
                 dfd.addServices(sd);
 
                 try {
+                    System.out.println("[Alarmado] Buscando servicio: " + sd.getType());
                     DFAgentDescription[] resultado = DFService.search(myAgent, dfd);
+                    System.out.println("[Alarmado] Resultados encontrados: " + resultado.length);
                     if (resultado.length != 0) {
+                        System.out.println("[Alarmado] Enviando mensaje a: " + resultado[0].getName());
                         ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
                         msg.addReceiver(resultado[0].getName());
                         msg.setContent(pedido);
+                        msg.setConversationId("conv-" + System.currentTimeMillis());
                         myAgent.send(msg);
                         stop(); // Finaliza el comportamiento cuando encuentra y contacta
                     }
