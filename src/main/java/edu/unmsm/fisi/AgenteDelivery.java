@@ -48,22 +48,40 @@ public class AgenteDelivery extends Agent{
                public void action() {
                     ACLMessage msg = receive();
                     if (msg != null) {
-                         ACLMessage reply = msg.createReply();
-
                          if (ocupado) {
+                              ACLMessage reply = msg.createReply();
                               reply.setPerformative(ACLMessage.REFUSE);
-                              reply.setContent("Lo siento, estoy ocupado con otra entrega");
+                              reply.setContent("Estoy ocupado con otra entrega");
+                              myAgent.send(reply);
                          } else {
-                              reply.setPerformative(ACLMessage.PROPOSE);
-                              
-                              // Tiempo estimado aleatorio
                               Random rand = new Random();
                               int tiempoEstimado = rand.nextInt(5,21);
+                              
+                              // Convertir minutos a segundos
+                              long tiempoEsperaMS = tiempoEstimado * 1000L;
+                              
+                              // Crear y enviar propuesta
+                              ACLMessage proposal = msg.createReply();
+                              proposal.setPerformative(ACLMessage.PROPOSE);
+                              proposal.setContent("Tiempo estimado: " + tiempoEstimado + " minutos");
+                              myAgent.send(proposal);
+                              
+                              // Cambiar estado interno y en el DF
+                              actualizarDisponibilidadDF(true);
 
-                              reply.setContent("Tiempo estimado: " + tiempoEstimado + "minutos");
+                              addBehaviour(new WakerBehaviour(myAgent, tiempoEsperaMS) {
+                                   @Override
+                                   protected void onWake() {
+                                        ACLMessage entrega = msg.createReply();
+                                        entrega.setPerformative(ACLMessage.INFORM);
+                                        entrega.setContent("Pedido listo. Entrega finalizada");
+                                        myAgent.send(entrega);
+
+                                        // Volver a estar disponible
+                                        actualizarDisponibilidadDF(false);
+                                   }
+                              });
                          }
-                         
-                         myAgent.send(reply);
                     } else {
                          block();
                     }
@@ -71,4 +89,23 @@ public class AgenteDelivery extends Agent{
           });
      }
 
+     private void actualizarDisponibilidadDF(boolean estaOcupado) {
+          this.ocupado = estaOcupado;
+
+          DFAgentDescription dfd = new DFAgentDescription();
+          dfd.setName(getAID());
+
+          ServiceDescription sd = new ServiceDescription();
+          sd.setType("delivery");
+          sd.setName(getLocalName());
+          sd.addProperties(new Property("estado", ocupado ? "ocupado": "disponible"));
+
+          dfd.addServices(sd);
+
+          try {
+               DFService.modify(this, dfd);
+          } catch (FIPAException e) {
+               e.printStackTrace();
+          }
+     }
 }
