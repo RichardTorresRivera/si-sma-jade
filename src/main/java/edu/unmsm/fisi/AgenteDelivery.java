@@ -10,7 +10,8 @@ import java.util.Random;
 
 public class AgenteDelivery extends Agent{    
      private boolean ocupado = false;
-     
+     private int tiempoEstimado = 0;
+
      protected void setup() {
           // Leer argumentos desde la terminal
           Object[] args = getArguments();
@@ -48,43 +49,48 @@ public class AgenteDelivery extends Agent{
                public void action() {
                     ACLMessage msg = receive();
                     if (msg != null) {
-                         if (ocupado) {
+
+                         if (msg.getPerformative() == ACLMessage.CFP) {
                               ACLMessage reply = msg.createReply();
-                              reply.setPerformative(ACLMessage.REFUSE);
-                              reply.setContent("Estoy ocupado con otra entrega");
+
+                              if (ocupado) {
+                                   reply.setPerformative(ACLMessage.REFUSE);
+                                   reply.setContent("Estoy ocupado con otra entrega");
+                              } else {
+                                   reply.setPerformative(ACLMessage.PROPOSE);
+                                   Random rand = new Random();
+                                   tiempoEstimado = rand.nextInt(16) + 5;
+                                   reply.setContent("Tiempo estimado: " + tiempoEstimado + " minutos");
+                              }
                               myAgent.send(reply);
-                         } else {
-                              Random rand = new Random();
-                              int tiempoEstimado = rand.nextInt(5,21);
-                              
-                              // Convertir minutos a segundos
-                              long tiempoEsperaMS = tiempoEstimado * 1000L;
-                              
-                              // Crear y enviar propuesta
-                              ACLMessage proposal = msg.createReply();
-                              proposal.setPerformative(ACLMessage.PROPOSE);
-                              proposal.setContent("Tiempo estimado: " + tiempoEstimado + " minutos");
-                              myAgent.send(proposal);
-                              
-                              // Cambiar estado interno y en el DF
+                         } else if (msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
                               actualizarDisponibilidadDF(true);
-
-                              addBehaviour(new WakerBehaviour(myAgent, tiempoEsperaMS) {
-                                   @Override
-                                   protected void onWake() {
-                                        ACLMessage entrega = msg.createReply();
-                                        entrega.setPerformative(ACLMessage.INFORM);
-                                        entrega.setContent("Pedido listo. Entrega finalizada");
-                                        myAgent.send(entrega);
-
-                                        // Volver a estar disponible
-                                        actualizarDisponibilidadDF(false);
-                                   }
-                              });
+                              simularViaje(msg);
                          }
                     } else {
                          block();
                     }
+               }
+          });
+     }
+
+     private void simularViaje(ACLMessage senderMsg) {
+          // Convertir minutos a segundos
+          long tiempoEsperaMS = tiempoEstimado * 1000L;
+          System.out.println(this.getLocalName() + " inicio viaje.");
+
+          // Cambiar estado interno y en el DF
+
+          addBehaviour(new WakerBehaviour(this, tiempoEsperaMS) {
+               @Override
+               protected void onWake() {
+                    actualizarDisponibilidadDF(false);
+                    System.out.println(myAgent.getLocalName() + ": Pedido listo. Entrega finalizada");
+
+                    ACLMessage entrega = new ACLMessage(ACLMessage.INFORM);
+                    entrega.addReceiver(senderMsg.getSender());
+                    entrega.setContent("estoy disponible");
+                    myAgent.send(entrega);
                }
           });
      }

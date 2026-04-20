@@ -19,7 +19,7 @@ public class CoordinatorAgent extends Agent {
 
     protected void setup() {
         ServiceDescription coordinatorService = new ServiceDescription();
-        coordinatorService.setType("gestionar pedido");
+        coordinatorService.setType("coordinador-service");
         coordinatorService.setName(this.getLocalName());
 
         ServiceDescription deliveryService = new ServiceDescription();
@@ -28,7 +28,7 @@ public class CoordinatorAgent extends Agent {
 
         registerService(coordinatorService);
         handleRestMessage(
-                "enviar pedido",
+                "pedido_listo:",
                 "buscando delivery",
                 "delivery asignado",
                 deliveryService
