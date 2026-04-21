@@ -3,19 +3,16 @@ services:
     image: si-sma-jade:latest
     build: .
     container_name: plataforma-a
-    command:
-      [
+    command: [
         "java",
         "-cp",
         "app.jar",
         "jade.Boot",
         "-gui",
         "-name",
-        "PlataformaA",
-        "-agents",
-        "persona1:edu.unmsm.fisi.AgenteAlarmado(fuego);bridge:edu.unmsm.fisi.AgentePuente(bomb@PlataformaB)",
-        "-mtp",
-        "jade.mtp.http.MessageTransportProtocol(http://plataforma-a:7778/acc)",
+        "plataforma-a",
+        # "-mtp",
+        # "jade.mtp.http.MessageTransportProtocol(http://plataforma-a:7778/acc)",
       ]
     ports:
       - "1099:1099"
@@ -23,9 +20,9 @@ services:
     networks:
       - si-sma-jade-network
 
-  plataforma-b:
+  contenedor-1a-gestion:
     image: si-sma-jade:latest
-    container_name: plataforma-b
+    container_name: contenedor-1a-gestion
     depends_on:
       - plataforma-a
     command:
@@ -34,19 +31,79 @@ services:
         "-cp",
         "app.jar",
         "jade.Boot",
-        "-gui",
-        "-name",
-        "PlataformaB",
+        "-container",
+        "-host",
+        "plataforma-a",
+        "-container-name",
+        "contenedor-1a-gestion",
         "-agents",
-        "bomb:edu.unmsm.fisi.AgenteBombero",
-        "-mtp",
-        "jade.mtp.http.MessageTransportProtocol(http://plataforma-b:7778/acc)",
+        "restaurante:edu.unmsm.fisi.AgenteRestaurante;coordinador:edu.unmsm.fisi.CoordinatorAgent",
       ]
-    ports:
-      - "1100:1099"
-      - "7779:7778"
     networks:
       - si-sma-jade-network
 
+    # plataforma-b:
+    #   image: si-sma-jade:latest
+    #   container_name: plataforma-b
+    #   command: [
+    #       "java",
+    #       "-cp",
+    #       "app.jar",
+    #       "jade.Boot",
+    #       "-gui",
+    #       "-name",
+    #       "plataforma-b",
+    #       "-mtp",
+    #       "jade.mtp.http.MessageTransportProtocol(http://plataforma-b:7778/acc)",
+    #     ]
+    #   ports:
+    #     - "1100:1099"
+    #     - "7779:7778"
+    #   networks:
+    #     - si-sma-jade-network
+
+  contenedor-1b-clientes:
+    image: si-sma-jade:latest
+    container_name: contenedor-1b-clientes
+    depends_on:
+      - plataforma-a
+    command:
+      [
+        "java",
+        "-cp",
+        "app.jar",
+        "jade.Boot",
+        "-container",
+        "-host",
+        "plataforma-a",
+        "-container-name",
+        "contenedor-1b-clientes",
+        "-agents",
+        "cliente1:edu.unmsm.fisi.AgenteCliente;cliente2:edu.unmsm.fisi.AgenteCliente",
+      ]
+    networks:
+      - si-sma-jade-network
+
+  contenedor-2b-deliveries:
+    image: si-sma-jade:latest
+    container_name: contenedor-2b-deliveries
+    depends_on:
+      - plataforma-a
+    command:
+      [
+        "java",
+        "-cp",
+        "app.jar",
+        "jade.Boot",
+        "-container",
+        "-host",
+        "plataforma-a",
+        "-container-name",
+        "contenedor-2b-deliveries",
+        "-agents",
+        "delivery1:edu.unmsm.fisi.AgenteDelivery;delivery2:edu.unmsm.fisi.AgenteDelivery;delivery3:edu.unmsm.fisi.AgenteDelivery",
+      ]
+    networks:
+      - si-sma-jade-network
 networks:
   si-sma-jade-network:
