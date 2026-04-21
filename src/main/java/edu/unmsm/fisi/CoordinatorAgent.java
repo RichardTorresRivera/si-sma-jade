@@ -10,12 +10,13 @@ import jade.domain.FIPAException;
 import jade.lang.acl.ACLMessage;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class CoordinatorAgent extends Agent {
     private List<ACLMessage> orders = new ArrayList<>();
-    private int deliverySendMessages = 0;
-    private List<ACLMessage> deliveryReplies = new ArrayList<>();
+    private HashMap<String, Integer> expectedReplies = new HashMap<>();
+    private HashMap<String, List<ACLMessage>> delReplies = new HashMap<>();
 
     protected void setup() {
         ServiceDescription coordinatorService = new ServiceDescription();
@@ -27,7 +28,7 @@ public class CoordinatorAgent extends Agent {
         deliveryService.addProperties(new Property("estado", "disponible"));
 
         registerService(coordinatorService);
-        handleRestMessage(
+        handleRecMessage(
                 "pedido_listo:",
                 "buscando delivery",
                 "delivery asignado",
@@ -46,7 +47,7 @@ public class CoordinatorAgent extends Agent {
         }
     }
 
-    protected void handleRestMessage(
+    protected void handleRecMessage(
             String restMessage,
             String restReply,
             String delReply,
@@ -59,60 +60,45 @@ public class CoordinatorAgent extends Agent {
 
                 if (msg != null) {
                     if (msg.getContent().toLowerCase().contains(restMessage)) {
-                        // Reply rest
                         ACLMessage reply = msg.createReply();
+                        String convId = "TICKET-" + System.currentTimeMillis();
+
+                        msg.setConversationId(convId);
                         reply.setContent(restReply);
                         myAgent.send(reply);
 
                         orders.add(msg);
 
-                        searchDelivery(delService);
+                        searchDelivery(delService, convId);
 
                     } else if (msg.getPerformative() == ACLMessage.PROPOSE || msg.getPerformative() == ACLMessage.REFUSE) {
+                        String convId = msg.getConversationId();
 
-                        if (msg.getPerformative() == ACLMessage.PROPOSE) {
-                            System.out.println("Propuesta de " + msg.getSender().getLocalName() + " => " + msg.getContent());
-                        } else {
-                            System.out.println("Delivery " + msg.getSender().getLocalName() + " => no disponible");
-                        }
-
-                        deliveryReplies.add(msg);
-
-                        if (deliveryReplies.size() == deliverySendMessages) {
-                            int bestIndex = getBestIndexDelivery();
-
-                            if (bestIndex != -1) {
-                                for (int i = 0; i < deliveryReplies.size(); i++) {
-                                    ACLMessage currentReplyMsg = deliveryReplies.get(i);
-
-                                    if (currentReplyMsg.getPerformative() == ACLMessage.PROPOSE) {
-                                        ACLMessage answer = currentReplyMsg.createReply();
-
-                                        if (i == bestIndex) {
-                                            answer.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
-                                            answer.setContent(delReply);
-                                            System.out.println("Asignando pedido a " + currentReplyMsg.getSender().getLocalName());
-                                        } else {
-                                            answer.setPerformative(ACLMessage.REJECT_PROPOSAL);
-                                            answer.setContent("Pedido asignado a otro");
-                                        }
-                                        myAgent.send(answer);
-                                    }
-                                }
-                                if (!orders.isEmpty()) {
-                                    orders.remove(0);
-                                }
+                        if (convId != null && expectedReplies.containsKey(convId)) {
+                            if (msg.getPerformative() == ACLMessage.PROPOSE) {
+                                System.out.println("Propuesta de " + msg.getSender().getLocalName() + " para " + convId + " => " + msg.getContent());
                             } else {
-                                System.out.println("Todos los delivery están ocupados");
+                                System.out.println("Delivery " + msg.getSender().getLocalName() + " => no disponible para " + convId);
                             }
 
-                            deliveryReplies.clear();
-                            deliverySendMessages = 0;
+                            delReplies.get(convId).add(msg);
+
+                            if (expectedReplies.get(convId) == delReplies.get(convId).size()) {
+                                assignDelivery(delReply, convId);
+                            }
                         }
+
                     } else if (msg.getPerformative() == ACLMessage.INFORM && msg.getContent().equals("estoy disponible")) {
                         if (!orders.isEmpty()) {
-                            System.out.println(msg.getSender().getLocalName() + " está libre. Retomando pedido pendiente en la cola...");
-                            searchDelivery(delService);
+                            for (ACLMessage order : orders) {
+                                String id = order.getConversationId();
+
+                                if(!expectedReplies.containsKey(id)) {
+                                    System.out.println(msg.getSender().getLocalName() + " está libre. Retomando pedido pendiente en la cola...");
+                                    searchDelivery(delService, id);
+                                    break;
+                                }
+                            }
                         }
                     }
                 } else {
@@ -122,12 +108,12 @@ public class CoordinatorAgent extends Agent {
         });
     }
 
-    protected int getBestIndexDelivery() {
+    protected int getBestIndexDelivery(List<ACLMessage> replies) {
         int bestIndex = -1;
         int bestDeliveryTime = Integer.MAX_VALUE;
 
-        for (int i = 0; i < deliveryReplies.size(); i++) {
-            ACLMessage reply = deliveryReplies.get(i);
+        for (int i = 0; i < replies.size(); i++) {
+            ACLMessage reply = replies.get(i);
 
             if (reply.getPerformative() == ACLMessage.PROPOSE) {
                 try {
@@ -146,7 +132,7 @@ public class CoordinatorAgent extends Agent {
         return bestIndex;
     }
 
-    protected void searchDelivery(ServiceDescription sd) {
+    protected void searchDelivery(ServiceDescription sd, String convId) {
         DFAgentDescription dfd = new DFAgentDescription();
         dfd.addServices(sd);
 
@@ -154,19 +140,53 @@ public class CoordinatorAgent extends Agent {
             DFAgentDescription[] res = DFService.search(this, dfd);
 
             if (res.length > 0) {
+                delReplies.put(convId, new ArrayList<>());
+                expectedReplies.put(convId, res.length);
+
                 for (DFAgentDescription delivery : res) {
                     ACLMessage msg = new ACLMessage(ACLMessage.CFP);
                     msg.addReceiver(delivery.getName());
                     msg.setContent("solicitado delivery");
+                    msg.setConversationId(convId);
                     this.send(msg);
-
-                    deliverySendMessages++;
                 }
             } else {
-                System.out.println("No hay deliveries disponibles");
+                System.out.println("No hay deliveries disponibles para " + convId);
             }
         } catch (FIPAException e) {
             e.printStackTrace();
         }
+    }
+
+    protected void assignDelivery(String delReply, String convId) {
+        List<ACLMessage> replies = delReplies.get(convId);
+        int bestIndex = getBestIndexDelivery(replies);
+
+        if (bestIndex != -1) {
+            for (int i = 0; i < replies.size(); i++) {
+                ACLMessage currentReplyMsg = replies.get(i);
+
+                if (currentReplyMsg.getPerformative() == ACLMessage.PROPOSE) {
+                    ACLMessage answer = currentReplyMsg.createReply();
+
+                    if (i == bestIndex) {
+                        answer.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
+                        answer.setContent(delReply);
+                        System.out.println("Asignando pedido a " + currentReplyMsg.getSender().getLocalName());
+                    } else {
+                        answer.setPerformative(ACLMessage.REJECT_PROPOSAL);
+                        answer.setContent("Pedido asignado a otro");
+                    }
+                    this.send(answer);
+                }
+            }
+
+            orders.removeIf(order -> order.getConversationId() != null && order.getConversationId().equals(convId));
+        } else {
+            System.out.println("Todos los delivery rechazaron el " + convId);
+        }
+
+        delReplies.remove(convId);
+        expectedReplies.remove(convId);
     }
 }
