@@ -61,11 +61,18 @@ public class AgenteDelivery extends Agent{
                                    Random rand = new Random();
                                    tiempoEstimado = rand.nextInt(16) + 5;
                                    reply.setContent("Tiempo estimado: " + tiempoEstimado + " minutos");
+                                   actualizarDisponibilidadDF(true);
                               }
                               myAgent.send(reply);
                          } else if (msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
-                              actualizarDisponibilidadDF(true);
                               simularViaje(msg);
+                         } else if (msg.getPerformative() == ACLMessage.REJECT_PROPOSAL) {
+                              actualizarDisponibilidadDF(false);
+
+                              ACLMessage reply = new ACLMessage(ACLMessage.INFORM);
+                              reply.addReceiver(msg.getSender());
+                              reply.setContent("estoy disponible");
+                              myAgent.send(reply);
                          }
                     } else {
                          block();

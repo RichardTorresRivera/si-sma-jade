@@ -61,7 +61,7 @@ public class CoordinatorAgent extends Agent {
                 if (msg != null) {
                     if (msg.getContent().toLowerCase().contains(restMessage)) {
                         ACLMessage reply = msg.createReply();
-                        String convId = "TICKET-" + System.currentTimeMillis();
+                        String convId = "TICKET-" + java.util.UUID.randomUUID().toString().substring(0,8);
 
                         msg.setConversationId(convId);
                         reply.setContent(restReply);
