@@ -51,6 +51,7 @@ public class AgenteRestaurante extends Agent {
 
             if (msg != null) {
                 String pedido = msg.getContent();
+                jade.core.AID clienteAID = msg.getSender();
                 System.out.println(getAID().getLocalName() + ": Recibi pedido de: " + pedido + " de " + msg.getSender().getLocalName());
 
                 // Simular tiempo de preparación
@@ -61,7 +62,7 @@ public class AgenteRestaurante extends Agent {
                     protected void onWake() {
                         System.out.println(getAID().getLocalName() + ": Pedido '" + pedido + "' LISTO.");
                         // Una vez listo, buscar al coordinador para que asigne repartidor
-                        notificarCoordinador(pedido);
+                        notificarCoordinador(pedido, clienteAID);
                     }
                 });
             } else {
@@ -70,7 +71,7 @@ public class AgenteRestaurante extends Agent {
         }
     }
 
-    private void notificarCoordinador(String pedido) {
+    private void notificarCoordinador(String pedido, jade.core.AID clienteAID) {
         DFAgentDescription template = new DFAgentDescription();
         ServiceDescription sd = new ServiceDescription();
         sd.setType("coordinador-service");
@@ -81,11 +82,12 @@ public class AgenteRestaurante extends Agent {
             if (result.length > 0) {
                 ACLMessage aviso = new ACLMessage(ACLMessage.INFORM);
                 aviso.addReceiver(result[0].getName());
-                aviso.setContent("PEDIDO_LISTO:" + pedido);
+                aviso.setContent("PEDIDO_LISTO#" + pedido + "#" + clienteAID.getLocalName());
+
                 send(aviso);
-                System.out.println(getAID().getLocalName() + ": Notificado al Coordinador " + result[0].getName().getLocalName());
+                System.out.println(getAID().getLocalName() + ": Notificado al Coordinador. Cliente destino: " + clienteAID.getLocalName());
             } else {
-                System.out.println(getAID().getLocalName() + ": Error: No se encontró ningún Coordinador en el DF.");
+                System.out.println(getAID().getLocalName() + ": Error: No se encontró Coordinador.");
             }
         } catch (FIPAException fe) {
             fe.printStackTrace();
