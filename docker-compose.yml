@@ -3,13 +3,12 @@ services:
     image: si-sma-jade:latest
     build: .
     container_name: plataforma-a
-    command:
-      [
+    command: [
         "java",
         "-cp",
         "app.jar",
         "jade.Boot",
-        "-gui",
+        # "-gui",
         "-name",
         "plataforma-a",
         "-host",
@@ -26,7 +25,7 @@ services:
       - si-sma-jade-network
     healthcheck:
       test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/1099"]
-      interval: 30s
+      interval: 15s
       timeout: 10s
       retries: 10
 
@@ -50,7 +49,7 @@ services:
         "-container-name",
         "contenedor-1a-gestion",
         "-agents",
-        "restaurante:edu.unmsm.fisi.AgenteRestaurante;coordinador:edu.unmsm.fisi.CoordinatorAgent;puente-a1:edu.unmsm.fisi.AgentePuente(enma,plataforma-b,delivery,enma);puente-a2:edu.unmsm.fisi.AgentePuente(richi,plataforma-b,delivery,richi)",
+        "restaurante:edu.unmsm.fisi.AgenteRestaurante;coordinador:edu.unmsm.fisi.CoordinatorAgent;puente-a1:edu.unmsm.fisi.AgentePuente(enma,plataforma-b,delivery,enma)",
       ]
     networks:
       - si-sma-jade-network
@@ -58,13 +57,12 @@ services:
   plataforma-b:
     image: si-sma-jade:latest
     container_name: plataforma-b
-    command:
-      [
+    command: [
         "java",
         "-cp",
         "app.jar",
         "jade.Boot",
-        "-gui",
+        # "-gui",
         "-name",
         "plataforma-b",
         "-host",
@@ -81,7 +79,7 @@ services:
       - si-sma-jade-network
     healthcheck:
       test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/1099"]
-      interval: 30s
+      interval: 15s
       timeout: 10s
       retries: 10
 
@@ -105,7 +103,7 @@ services:
         "-container-name",
         "contenedor-1b-clientes",
         "-agents",
-        "miguel:edu.unmsm.fisi.AgenteCliente(Ceviche);alvaro:edu.unmsm.fisi.AgenteCliente(Carapulcra);puente-b:edu.unmsm.fisi.AgentePuente(restaurante,plataforma-a,restaurante-service,Venta-de-comida)",
+        "miguel:edu.unmsm.fisi.AgenteCliente(Ceviche);puente-b:edu.unmsm.fisi.AgentePuente(restaurante,plataforma-a,restaurante-service,Venta-de-comida)",
       ]
     networks:
       - si-sma-jade-network
@@ -130,7 +128,7 @@ services:
         "-container-name",
         "contenedor-2b-deliveries",
         "-agents",
-        "enma:edu.unmsm.fisi.AgenteDelivery;richi:edu.unmsm.fisi.AgenteDelivery",
+        "enma:edu.unmsm.fisi.AgenteDelivery",
       ]
     networks:
       - si-sma-jade-network

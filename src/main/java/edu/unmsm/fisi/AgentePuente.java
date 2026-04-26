@@ -13,8 +13,17 @@ import java.util.Map;
 
 public class AgentePuente extends Agent {
 
+    private class ContextoMensaje {
+        AID remitente;
+        String idOriginal;
+        ContextoMensaje(AID remitente, String idOriginal) {
+            this.remitente = remitente;
+            this.idOriginal = idOriginal;
+        }
+    }
+
     private AID remoteAgentAID;
-    private Map<String, AID> conversaciones = new HashMap<>();
+    private Map<String, ContextoMensaje> conversaciones = new HashMap<>();
 
     protected void setup() {
         Object[] args = getArguments();
@@ -41,10 +50,10 @@ public class AgentePuente extends Agent {
                         );
                         // Mensaje desde plataforma ORIGEN --> Reenviar a DESTINO
                         if (!msg.getSender().equals(remoteAgentAID)) {
+                            String convIdOriginal = msg.getConversationId();
+                            String convId = "conv-" + java.util.UUID.randomUUID().toString().substring(0,8);
 
-                            String convId = "conv-" + System.currentTimeMillis();
-
-                            conversaciones.put(convId, msg.getSender());
+                            conversaciones.put(convId, new ContextoMensaje(msg.getSender(), convIdOriginal));
 
                             ACLMessage forward = new ACLMessage(msg.getPerformative());
                             forward.addReceiver(remoteAgentAID);
@@ -61,21 +70,22 @@ public class AgentePuente extends Agent {
                         // Respuesta desde plataforma DESTINO --> Reenviar a ORIGEN
                         else {
                             String convId = msg.getConversationId();
-                            AID original = conversaciones.get(convId);
+                            ContextoMensaje contexto = conversaciones.get(convId);
 
                             System.out.println(
                                 "[Puente] ← Respuesta de remoto | ConvID: " + convId
                             );
 
-                            if (original != null) {
+                            if (contexto != null) {
                                 ACLMessage reply = new ACLMessage(msg.getPerformative());
-                                reply.addReceiver(original);
+                                reply.addReceiver(contexto.remitente);
                                 reply.setContent(msg.getContent());
+                                reply.setConversationId(contexto.idOriginal);
 
                                 send(reply);
 
                                 System.out.println(
-                                        "[Puente] → Reenviado a: " + original.getName()
+                                        "[Puente] → Reenviado a: " + contexto.remitente.getName()
                                 );
 
                                 conversaciones.remove(convId);

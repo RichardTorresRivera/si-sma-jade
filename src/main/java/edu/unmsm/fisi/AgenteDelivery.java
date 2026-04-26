@@ -63,6 +63,7 @@ public class AgenteDelivery extends Agent{
                                    reply.setContent("Tiempo estimado: " + tiempoEstimado + " minutos");
                                    actualizarDisponibilidadDF(true);
                               }
+                              reply.setConversationId(msg.getConversationId());
                               myAgent.send(reply);
                          } else if (msg.getPerformative() == ACLMessage.ACCEPT_PROPOSAL) {
                               simularViaje(msg);
@@ -72,6 +73,7 @@ public class AgenteDelivery extends Agent{
                               ACLMessage reply = new ACLMessage(ACLMessage.INFORM);
                               reply.addReceiver(msg.getSender());
                               reply.setContent("estoy disponible");
+                              reply.setConversationId(msg.getConversationId());
                               myAgent.send(reply);
                          }
                     } else {
@@ -97,6 +99,7 @@ public class AgenteDelivery extends Agent{
                     ACLMessage entrega = new ACLMessage(ACLMessage.INFORM);
                     entrega.addReceiver(senderMsg.getSender());
                     entrega.setContent("estoy disponible");
+                    entrega.setConversationId(senderMsg.getConversationId());
                     myAgent.send(entrega);
                }
           });

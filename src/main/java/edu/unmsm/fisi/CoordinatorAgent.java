@@ -25,7 +25,7 @@ public class CoordinatorAgent extends Agent {
 
         ServiceDescription deliveryService = new ServiceDescription();
         deliveryService.setType("delivery");
-        deliveryService.addProperties(new Property("estado", "disponible"));
+        // deliveryService.addProperties(new Property("estado", "disponible"));
 
         registerService(coordinatorService);
         handleRecMessage(
@@ -61,7 +61,7 @@ public class CoordinatorAgent extends Agent {
                 if (msg != null) {
                     if (msg.getContent().toLowerCase().contains(restMessage)) {
                         ACLMessage reply = msg.createReply();
-                        String convId = "TICKET-" + java.util.UUID.randomUUID().toString().substring(0,8);
+                        String convId = "conv-" + java.util.UUID.randomUUID().toString().substring(0,8);
 
                         msg.setConversationId(convId);
                         reply.setContent(restReply);
