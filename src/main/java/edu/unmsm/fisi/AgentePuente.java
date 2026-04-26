@@ -19,12 +19,15 @@ public class AgentePuente extends Agent {
     protected void setup() {
         Object[] args = getArguments();
 
-        if (args != null && args.length > 0) {
-            String remoteName = (String) args[0];
-            remoteAgentAID = new AID(remoteName, AID.ISGUID);
-            remoteAgentAID.addAddresses("http://plataforma-b:7778/acc");
+        if (args != null && args.length >= 4) {
+            String agentName = (String) args[0];
+            String platformName = (String) args[1];
+            String serviceType = (String) args[2];
+            String serviceName = (String) args[3];
+            remoteAgentAID = new AID(agentName + "@" + platformName, AID.ISGUID);
+            remoteAgentAID.addAddresses("http://" + platformName + ":7778/acc");
 
-            registrarServicioLocal();
+            registrarServicioLocal(serviceType, serviceName);
 
             addBehaviour(new CyclicBehaviour() {
                 public void action() {
@@ -32,11 +35,11 @@ public class AgentePuente extends Agent {
 
                     if (msg != null) {
                         System.out.println(
-                            "[Puente] Recibido de: " + msg.getSender().getName() +
-                            " | Contenido: " + msg.getContent() +
-                            " | ConvID: " + msg.getConversationId()
+                            "[Puente] Mensaje recibido de: " + msg.getSender().getName() +
+                            "\n\t| Contenido: " + msg.getContent() +
+                            "\n\t| ConvID: " + msg.getConversationId()
                         );
-                        // MENSAJE DESDE PLATAFORMA A → reenviar a B
+                        // Mensaje desde plataforma ORIGEN --> Reenviar a DESTINO
                         if (!msg.getSender().equals(remoteAgentAID)) {
 
                             String convId = "conv-" + System.currentTimeMillis();
@@ -52,10 +55,10 @@ public class AgentePuente extends Agent {
 
                             System.out.println(
                                 "[Puente] → Enviado a remoto: " + remoteAgentAID.getName() +
-                                " | ConvID: " + convId
+                                "\n\t| ConvID: " + convId
                             );
                         }
-                        // RESPUESTA DESDE B → devolver a A
+                        // Respuesta desde plataforma DESTINO --> Reenviar a ORIGEN
                         else {
                             String convId = msg.getConversationId();
                             AID original = conversaciones.get(convId);
@@ -92,16 +95,27 @@ public class AgentePuente extends Agent {
                     }
                 }
             });
+        } else {
+            System.out.println("[Error] Falta argumentos para el Agente Puente");
+            System.out.println("\t1: Nombre del agente");
+            System.out.println("\t2: Nombre de la plataforma");
+            System.out.println("\t3: Tipo de servicio");
+            System.out.println("\t4: Nombre del servicio");
         }
     }
 
-    private void registrarServicioLocal() {
-        DFAgentDescription dfd = new DFAgentDescription();
+    private void registrarServicioLocal(String serviceType, String serviceName) {
+        // Crear la descripcion del servicio
         ServiceDescription sd = new ServiceDescription();
-        sd.setType("apaga fuego");
-        sd.setName("Servicio-Remoto-Bombero");
+        sd.setType(serviceType);
+        sd.setName(serviceName);
+
+        // Crear la descripcion del agente
+        DFAgentDescription dfd = new DFAgentDescription();
+        dfd.setName(getAID());
         dfd.addServices(sd);
 
+        // Registrar en el DF
         try {
             DFService.register(this, dfd);
         } catch (FIPAException e) {

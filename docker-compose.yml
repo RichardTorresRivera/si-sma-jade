@@ -3,7 +3,8 @@ services:
     image: si-sma-jade:latest
     build: .
     container_name: plataforma-a
-    command: [
+    command:
+      [
         "java",
         "-cp",
         "app.jar",
@@ -11,20 +12,30 @@ services:
         "-gui",
         "-name",
         "plataforma-a",
-        # "-mtp",
-        # "jade.mtp.http.MessageTransportProtocol(http://plataforma-a:7778/acc)",
+        "-host",
+        "plataforma-a",
+        "-port",
+        "1099",
+        "-mtp",
+        "jade.mtp.http.MessageTransportProtocol(http://plataforma-a:7778/acc)",
       ]
     ports:
       - "1099:1099"
       - "7778:7778"
     networks:
       - si-sma-jade-network
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/1099"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
 
   contenedor-1a-gestion:
     image: si-sma-jade:latest
     container_name: contenedor-1a-gestion
     depends_on:
-      - plataforma-a
+      plataforma-a:
+        condition: service_healthy
     command:
       [
         "java",
@@ -34,39 +45,52 @@ services:
         "-container",
         "-host",
         "plataforma-a",
+        "-port",
+        "1099",
         "-container-name",
         "contenedor-1a-gestion",
         "-agents",
-        "restaurante:edu.unmsm.fisi.AgenteRestaurante;coordinador:edu.unmsm.fisi.CoordinatorAgent",
+        "restaurante:edu.unmsm.fisi.AgenteRestaurante;coordinador:edu.unmsm.fisi.CoordinatorAgent;puente-a1:edu.unmsm.fisi.AgentePuente(enma,plataforma-b,delivery,enma);puente-a2:edu.unmsm.fisi.AgentePuente(richi,plataforma-b,delivery,richi)",
       ]
     networks:
       - si-sma-jade-network
 
-    # plataforma-b:
-    #   image: si-sma-jade:latest
-    #   container_name: plataforma-b
-    #   command: [
-    #       "java",
-    #       "-cp",
-    #       "app.jar",
-    #       "jade.Boot",
-    #       "-gui",
-    #       "-name",
-    #       "plataforma-b",
-    #       "-mtp",
-    #       "jade.mtp.http.MessageTransportProtocol(http://plataforma-b:7778/acc)",
-    #     ]
-    #   ports:
-    #     - "1100:1099"
-    #     - "7779:7778"
-    #   networks:
-    #     - si-sma-jade-network
+  plataforma-b:
+    image: si-sma-jade:latest
+    container_name: plataforma-b
+    command:
+      [
+        "java",
+        "-cp",
+        "app.jar",
+        "jade.Boot",
+        "-gui",
+        "-name",
+        "plataforma-b",
+        "-host",
+        "plataforma-b",
+        "-port",
+        "1099",
+        "-mtp",
+        "jade.mtp.http.MessageTransportProtocol(http://plataforma-b:7778/acc)",
+      ]
+    ports:
+      - "1100:1099"
+      - "7779:7778"
+    networks:
+      - si-sma-jade-network
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/1099"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
 
   contenedor-1b-clientes:
     image: si-sma-jade:latest
     container_name: contenedor-1b-clientes
     depends_on:
-      - plataforma-a
+      plataforma-b:
+        condition: service_healthy
     command:
       [
         "java",
@@ -75,11 +99,13 @@ services:
         "jade.Boot",
         "-container",
         "-host",
-        "plataforma-a",
+        "plataforma-b",
+        "-port",
+        "1099",
         "-container-name",
         "contenedor-1b-clientes",
         "-agents",
-        "cliente1:edu.unmsm.fisi.AgenteCliente;cliente2:edu.unmsm.fisi.AgenteCliente",
+        "miguel:edu.unmsm.fisi.AgenteCliente(Ceviche);alvaro:edu.unmsm.fisi.AgenteCliente(Carapulcra);puente-b:edu.unmsm.fisi.AgentePuente(restaurante,plataforma-a,restaurante-service,Venta-de-comida)",
       ]
     networks:
       - si-sma-jade-network
@@ -88,7 +114,8 @@ services:
     image: si-sma-jade:latest
     container_name: contenedor-2b-deliveries
     depends_on:
-      - plataforma-a
+      plataforma-b:
+        condition: service_healthy
     command:
       [
         "java",
@@ -97,11 +124,13 @@ services:
         "jade.Boot",
         "-container",
         "-host",
-        "plataforma-a",
+        "plataforma-b",
+        "-port",
+        "1099",
         "-container-name",
         "contenedor-2b-deliveries",
         "-agents",
-        "delivery1:edu.unmsm.fisi.AgenteDelivery;delivery2:edu.unmsm.fisi.AgenteDelivery;delivery3:edu.unmsm.fisi.AgenteDelivery",
+        "enma:edu.unmsm.fisi.AgenteDelivery;richi:edu.unmsm.fisi.AgenteDelivery",
       ]
     networks:
       - si-sma-jade-network
