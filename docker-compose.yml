@@ -24,7 +24,7 @@ services:
     networks:
       - si-sma-jade-network
     healthcheck:
-      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/1099"]
+      test: ["CMD-SHELL", "jps | grep Boot || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 10
@@ -49,7 +49,7 @@ services:
         "-container-name",
         "contenedor-1a-gestion",
         "-agents",
-        "restaurante:edu.unmsm.fisi.AgenteRestaurante;coordinador:edu.unmsm.fisi.CoordinatorAgent;puente-a1:edu.unmsm.fisi.AgentePuente(enma,plataforma-b,delivery,enma)",
+        "restaurante:edu.unmsm.fisi.AgenteRestaurante;coordinador:edu.unmsm.fisi.AgenteCoordinador;puente-a1:edu.unmsm.fisi.AgentePuente(enma,plataforma-b,delivery,enma)",
       ]
     networks:
       - si-sma-jade-network
@@ -78,7 +78,7 @@ services:
     networks:
       - si-sma-jade-network
     healthcheck:
-      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/1099"]
+      test: ["CMD-SHELL", "jps | grep Boot || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 10

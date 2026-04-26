@@ -63,6 +63,11 @@ public class AgenteRestaurante extends Agent {
                         System.out.println(getAID().getLocalName() + ": Pedido '" + pedido + "' LISTO.");
                         // Una vez listo, buscar al coordinador para que asigne repartidor
                         notificarCoordinador(pedido, clienteAID);
+
+                        ACLMessage respuestaCliente = msg.createReply();
+                        respuestaCliente.setPerformative(ACLMessage.INFORM);
+                        respuestaCliente.setContent("Tu pedido '" + pedido + "' esta listo y en camino.");
+                        send(respuestaCliente);
                     }
                 });
             } else {

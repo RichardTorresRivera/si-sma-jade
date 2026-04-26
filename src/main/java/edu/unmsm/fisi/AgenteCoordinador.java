@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class CoordinatorAgent extends Agent {
+public class AgenteCoordinador extends Agent {
     private List<ACLMessage> orders = new ArrayList<>();
     private HashMap<String, Integer> expectedReplies = new HashMap<>();
     private HashMap<String, List<ACLMessage>> delReplies = new HashMap<>();
@@ -29,7 +29,7 @@ public class CoordinatorAgent extends Agent {
 
         registerService(coordinatorService);
         handleRecMessage(
-                "pedido_listo:",
+                "pedido_listo#",
                 "buscando delivery",
                 "delivery asignado",
                 deliveryService
@@ -61,7 +61,7 @@ public class CoordinatorAgent extends Agent {
                 if (msg != null) {
                     if (msg.getContent().toLowerCase().contains(restMessage)) {
                         ACLMessage reply = msg.createReply();
-                        String convId = "conv-" + java.util.UUID.randomUUID().toString().substring(0,8);
+                        String convId = msg.getContent().split("#")[2].trim();
 
                         msg.setConversationId(convId);
                         reply.setContent(restReply);
